@@ -5,6 +5,8 @@ use std::sync::atomic::{
     AtomicI8, AtomicI16, AtomicI32, AtomicI64, AtomicU8, AtomicU16, AtomicU32, AtomicU64, Ordering,
 };
 
+use flux_rs::attrs::*;
+
 /// A trait for types which are used to report errors. Each type used in the
 /// first result position of an interface function is used, by convention, to
 /// indicate whether the function was successful and subsequent results are valid,
@@ -68,7 +70,7 @@ macro_rules! integer_primitives {
             fn guest_align() -> usize { mem::align_of::<Self>() }
 
             #[inline]
-            #[flux::trusted]
+            #[trusted]
             fn read(mem: &GuestMemory, ptr: GuestPtr<Self>) -> Result<Self, GuestError> {
                 // Use `validate_size_align` to validate offset and alignment
                 // internally. The `host_ptr` type will be `&UnsafeCell<Self>`
@@ -93,7 +95,7 @@ macro_rules! integer_primitives {
                 Ok($ty::from_le(val))
             }
 
-            #[flux::trusted]
+            #[trusted]
             #[inline]
             fn write(mem: &mut GuestMemory, ptr: GuestPtr<Self>, val: Self) -> Result<(), GuestError> {
                 // See `read` above for various checks here.

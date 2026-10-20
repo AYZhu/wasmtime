@@ -25,6 +25,7 @@ tracing = { workspace = true }
 bitflags = { workspace = true }
 wasmtime = { workspace = true, optional = true }
 wasmtime-environ = { workspace = true }
+flux-rs = { git  = "https://github.com/flux-rs/flux.git" }
 
 [dev-dependencies]
 wiggle-test = { path = "test-helpers" }
