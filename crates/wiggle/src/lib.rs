@@ -109,6 +109,8 @@ impl<'a> GuestMemory<'a> {
     ///
     /// An error is returned if `ptr` is out of bounds, misaligned, or otherwise
     /// not valid to read from.
+
+    #[flux::trusted]
     pub fn as_cow_str(&self, ptr: GuestPtr<str>) -> Result<Cow<'_, str>, GuestError> {
         match self.as_cow(ptr.cast::<[u8]>())? {
             Cow::Owned(bytes) => Ok(Cow::Owned(
@@ -128,6 +130,8 @@ impl<'a> GuestMemory<'a> {
     ///
     /// An error is returned if `ptr` is out of bounds, misaligned, or otherwise
     /// not valid to read from.
+    
+    #[flux::trusted]
     pub fn as_slice(&self, ptr: GuestPtr<[u8]>) -> Result<Option<&[u8]>, GuestError> {
         let range = self.validate_range::<u8>(ptr.pointer.0, ptr.pointer.1)?;
         match self {
@@ -149,6 +153,8 @@ impl<'a> GuestMemory<'a> {
     ///
     /// Like [`GuestMemory::as_slice`] this only works for `Unshared` memories
     /// and will not work for `Shared` memories.
+    
+    #[flux::trusted]
     pub fn as_slice_mut(&mut self, ptr: GuestPtr<[u8]>) -> Result<Option<&mut [u8]>, GuestError> {
         let range = self.validate_range::<u8>(ptr.pointer.0, ptr.pointer.1)?;
         match self {
@@ -161,6 +167,8 @@ impl<'a> GuestMemory<'a> {
     ///
     /// This is useful when one cannot use [`GuestMemory::as_slice`], e.g., when
     /// pointing to a region of WebAssembly shared memory.
+
+    #[flux::trusted]
     pub fn to_vec<T>(&self, ptr: GuestPtr<[T]>) -> Result<Vec<T>, GuestError>
     where
         T: GuestTypeTransparent + Copy,
@@ -197,6 +205,8 @@ impl<'a> GuestMemory<'a> {
     ///
     /// Returns an error if this guest pointer is out of bounds or if the length
     /// of this guest pointer is not equal to the length of the slice provided.
+    
+    #[flux::trusted]
     pub fn copy_from_slice<T>(&mut self, slice: &[T], ptr: GuestPtr<[T]>) -> Result<(), GuestError>
     where
         T: GuestTypeTransparent + Copy,
@@ -423,11 +433,13 @@ impl<T> GuestPtr<[T]> {
     /// array.
     ///
     /// This is similar to `<[T]>::as_ptr()`
+    #[flux::trusted]
     pub fn offset_base(&self) -> u32 {
         self.pointer.0
     }
 
     /// For slices, returns the length of the slice, in elements.
+    #[flux::trusted]
     pub fn len(&self) -> u32 {
         self.pointer.1
     }
@@ -489,11 +501,13 @@ impl<T> GuestPtr<[T]> {
 impl GuestPtr<str> {
     /// For strings, returns the relative pointer to the base of the string
     /// allocation.
+    #[flux::trusted]
     pub fn offset_base(&self) -> u32 {
         self.pointer.0
     }
 
     /// Returns the length, in bytes, of the string.
+    #[flux::trusted]
     pub fn len(&self) -> u32 {
         self.pointer.1
     }

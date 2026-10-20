@@ -68,6 +68,7 @@ macro_rules! integer_primitives {
             fn guest_align() -> usize { mem::align_of::<Self>() }
 
             #[inline]
+            #[flux::trusted]
             fn read(mem: &GuestMemory, ptr: GuestPtr<Self>) -> Result<Self, GuestError> {
                 // Use `validate_size_align` to validate offset and alignment
                 // internally. The `host_ptr` type will be `&UnsafeCell<Self>`
@@ -92,6 +93,7 @@ macro_rules! integer_primitives {
                 Ok($ty::from_le(val))
             }
 
+            #[flux::trusted]
             #[inline]
             fn write(mem: &mut GuestMemory, ptr: GuestPtr<Self>, val: Self) -> Result<(), GuestError> {
                 // See `read` above for various checks here.
