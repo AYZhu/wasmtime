@@ -53,8 +53,10 @@ pub(crate) fn path_has_trailing_slash(path: &Path) -> bool {
 /// canonicalizing to `foo/.` since these syscalls treat these differently.
 pub(crate) fn strip_dir_suffix(path: &Path) -> impl Deref<Target = Path> + '_ {
     let mut bytes = path.as_os_str().as_bytes();
-    while bytes.len() > 1 && *bytes.last().unwrap() == b'/' {
-        bytes = &bytes[..bytes.len() - 1];
+    let mut len = bytes.len();
+    while len > 1 && *bytes.last().unwrap() == b'/' {
+        bytes = &bytes[..len - 1];
+        len = bytes.len();
     }
     OsStr::from_bytes(bytes).as_ref()
 }

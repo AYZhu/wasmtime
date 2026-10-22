@@ -17,6 +17,9 @@ workspace = true
 [package.metadata.docs.rs]
 all-features = true
 
+[package.metadata.flux]
+enabled = true
+
 [dependencies]
 wasmtime = { workspace = true, features = ["runtime", "std"] }
 wasmtime-wasi-io = { workspace = true, features = ["std"] }

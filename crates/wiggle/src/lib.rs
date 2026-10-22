@@ -165,10 +165,10 @@ impl<'a> GuestMemory<'a> {
         let ptr = ptr.pointer;
         // TODO (alz034)
         let range = self.validate_range::<u8>(ptr.0, ptr.1)?;
-        match self {
+        return match self {
             GuestMemory::Unshared(slice) => Ok(Some(&mut slice[range])),
             GuestMemory::Shared(_) => Ok(None),
-        }
+        };
     }
 
     /// Copies the data in the guest region into a [`Vec`].

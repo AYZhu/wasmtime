@@ -619,17 +619,25 @@ fn assert_iovec_array_same() {
     // something. Additionally p1 and p0 aren't changing any more
     // and it's been manually verified that these two types are the same, so
     // it's ok to cast between them.
+
+    let size_p0 = std::mem::size_of::<types::IovecArray>();
+    let size_p1 = std::mem::size_of::<snapshot1_types::IovecArray>();
+
     assert_eq!(
-        std::mem::size_of::<types::IovecArray>(),
-        std::mem::size_of::<snapshot1_types::IovecArray>()
+        size_p0,
+        size_p1
     );
 }
 
 fn assert_ciovec_array_same() {
     // NB: see above too
+
+    let size_p0 = std::mem::size_of::<types::CiovecArray>();
+    let size_p1 = std::mem::size_of::<snapshot1_types::CiovecArray>();
+
     assert_eq!(
-        std::mem::size_of::<types::CiovecArray>(),
-        std::mem::size_of::<snapshot1_types::CiovecArray>()
+        size_p0,
+        size_p1
     );
 }
 
