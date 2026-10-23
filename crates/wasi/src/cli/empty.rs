@@ -5,6 +5,8 @@ use std::task::{Context, Poll};
 use tokio::io::{self, AsyncRead, AsyncWrite};
 use wasmtime_wasi_io::streams::{InputStream, OutputStream};
 
+use flux_rs::attrs::*;
+
 // Implementation for tokio::io::Empty
 impl IsTerminal for tokio::io::Empty {
     fn is_terminal(&self) -> bool {
@@ -20,9 +22,11 @@ impl StdinStream for tokio::io::Empty {
     }
 }
 impl StdoutStream for tokio::io::Empty {
+    #[trusted]
     fn p2_stream(&self) -> Box<dyn OutputStream> {
         Box::new(p2::pipe::SinkOutputStream)
     }
+    #[trusted]
     fn async_stream(&self) -> Box<dyn AsyncWrite + Send + Sync> {
         Box::new(tokio::io::empty())
     }
@@ -35,17 +39,21 @@ impl IsTerminal for std::io::Empty {
     }
 }
 impl StdinStream for std::io::Empty {
+    #[trusted]
     fn p2_stream(&self) -> Box<dyn InputStream> {
         Box::new(p2::pipe::ClosedInputStream)
     }
+    #[trusted]
     fn async_stream(&self) -> Box<dyn AsyncRead + Send + Sync> {
         Box::new(tokio::io::empty())
     }
 }
 impl StdoutStream for std::io::Empty {
+    #[trusted]
     fn p2_stream(&self) -> Box<dyn OutputStream> {
         Box::new(p2::pipe::SinkOutputStream)
     }
+    #[trusted]
     fn async_stream(&self) -> Box<dyn AsyncWrite + Send + Sync> {
         Box::new(tokio::io::empty())
     }
@@ -58,9 +66,11 @@ impl IsTerminal for p2::pipe::ClosedInputStream {
     }
 }
 impl StdinStream for p2::pipe::ClosedInputStream {
+    #[trusted]
     fn p2_stream(&self) -> Box<dyn InputStream> {
         Box::new(p2::pipe::ClosedInputStream)
     }
+    #[trusted]
     fn async_stream(&self) -> Box<dyn AsyncRead + Send + Sync> {
         Box::new(tokio::io::empty())
     }
@@ -73,9 +83,11 @@ impl IsTerminal for p2::pipe::SinkOutputStream {
     }
 }
 impl StdoutStream for p2::pipe::SinkOutputStream {
+    #[trusted]
     fn p2_stream(&self) -> Box<dyn OutputStream> {
         Box::new(p2::pipe::SinkOutputStream)
     }
+    #[trusted]
     fn async_stream(&self) -> Box<dyn AsyncWrite + Send + Sync> {
         Box::new(tokio::io::empty())
     }
@@ -88,9 +100,11 @@ impl IsTerminal for p2::pipe::ClosedOutputStream {
     }
 }
 impl StdoutStream for p2::pipe::ClosedOutputStream {
+    #[trusted]
     fn p2_stream(&self) -> Box<dyn OutputStream> {
         Box::new(p2::pipe::ClosedOutputStream)
     }
+    #[trusted]
     fn async_stream(&self) -> Box<dyn AsyncWrite + Send + Sync> {
         struct AlwaysClosed;
 

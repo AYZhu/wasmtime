@@ -17,6 +17,8 @@ mod worker_thread_stdin;
 pub use self::file::{InputFile, OutputFile};
 pub use self::locked_async::{AsyncStdinStream, AsyncStdoutStream};
 
+use flux_rs::attrs::*;
+
 /// Convert a host `io::Error` into a `StreamError`, matching the error-code
 /// recovery that wasip1 performs via `filesystem::ErrorCode::from`.
 ///
@@ -108,6 +110,7 @@ pub struct WasiCliCtx {
 }
 
 impl Default for WasiCliCtx {
+    #[trusted]
     fn default() -> WasiCliCtx {
         WasiCliCtx {
             environment: Vec::new(),
@@ -150,6 +153,7 @@ pub trait StdinStream: IsTerminal + Send {
     /// Note that this has a default implementation which uses
     /// [`p2::pipe::AsyncReadStream`] as an adapter, but this can be overridden
     /// if there's a more specialized implementation available.
+    #[trusted]
     fn p2_stream(&self) -> Box<dyn InputStream> {
         Box::new(p2::pipe::AsyncReadStream::new(Pin::from(
             self.async_stream(),
@@ -185,6 +189,7 @@ pub trait StdoutStream: IsTerminal + Send {
     /// Note that this has a default implementation which uses
     /// [`p2::pipe::AsyncWriteStream`] as an adapter, but this can be overridden
     /// if there's a more specialized implementation available.
+    #[trusted]
     fn p2_stream(&self) -> Box<dyn OutputStream> {
         Box::new(p2::pipe::AsyncWriteStream::new(
             8192, // FIXME: extract this to a constant.
@@ -200,17 +205,21 @@ impl<T: ?Sized + IsTerminal> IsTerminal for &T {
     }
 }
 impl<T: ?Sized + StdinStream + Sync> StdinStream for &T {
+    #[trusted]
     fn p2_stream(&self) -> Box<dyn InputStream> {
         T::p2_stream(self)
     }
+    #[trusted]
     fn async_stream(&self) -> Box<dyn AsyncRead + Send + Sync> {
         T::async_stream(self)
     }
 }
 impl<T: ?Sized + StdoutStream + Sync> StdoutStream for &T {
+    #[trusted]
     fn p2_stream(&self) -> Box<dyn OutputStream> {
         T::p2_stream(self)
     }
+    #[trusted]
     fn async_stream(&self) -> Box<dyn AsyncWrite + Send + Sync> {
         T::async_stream(self)
     }
@@ -223,17 +232,21 @@ impl<T: ?Sized + IsTerminal> IsTerminal for &mut T {
     }
 }
 impl<T: ?Sized + StdinStream + Sync> StdinStream for &mut T {
+    #[trusted]
     fn p2_stream(&self) -> Box<dyn InputStream> {
         T::p2_stream(self)
     }
+    #[trusted]
     fn async_stream(&self) -> Box<dyn AsyncRead + Send + Sync> {
         T::async_stream(self)
     }
 }
 impl<T: ?Sized + StdoutStream + Sync> StdoutStream for &mut T {
+    #[trusted]
     fn p2_stream(&self) -> Box<dyn OutputStream> {
         T::p2_stream(self)
     }
+    #[trusted]
     fn async_stream(&self) -> Box<dyn AsyncWrite + Send + Sync> {
         T::async_stream(self)
     }
@@ -246,17 +259,21 @@ impl<T: ?Sized + IsTerminal> IsTerminal for Box<T> {
     }
 }
 impl<T: ?Sized + StdinStream + Sync> StdinStream for Box<T> {
+    #[trusted]
     fn p2_stream(&self) -> Box<dyn InputStream> {
         T::p2_stream(self)
     }
+    #[trusted]
     fn async_stream(&self) -> Box<dyn AsyncRead + Send + Sync> {
         T::async_stream(self)
     }
 }
 impl<T: ?Sized + StdoutStream + Sync> StdoutStream for Box<T> {
+    #[trusted]
     fn p2_stream(&self) -> Box<dyn OutputStream> {
         T::p2_stream(self)
     }
+    #[trusted]
     fn async_stream(&self) -> Box<dyn AsyncWrite + Send + Sync> {
         T::async_stream(self)
     }
@@ -269,17 +286,21 @@ impl<T: ?Sized + IsTerminal> IsTerminal for Arc<T> {
     }
 }
 impl<T: ?Sized + StdinStream + Sync> StdinStream for Arc<T> {
+    #[trusted]
     fn p2_stream(&self) -> Box<dyn InputStream> {
         T::p2_stream(self)
     }
+    #[trusted]
     fn async_stream(&self) -> Box<dyn AsyncRead + Send + Sync> {
         T::async_stream(self)
     }
 }
 impl<T: ?Sized + StdoutStream + Sync> StdoutStream for Arc<T> {
+    #[trusted]
     fn p2_stream(&self) -> Box<dyn OutputStream> {
         T::p2_stream(self)
     }
+    #[trusted]
     fn async_stream(&self) -> Box<dyn AsyncWrite + Send + Sync> {
         T::async_stream(self)
     }

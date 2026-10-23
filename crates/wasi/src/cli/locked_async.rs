@@ -9,6 +9,8 @@ use tokio::io::{self, AsyncRead, AsyncWrite};
 use tokio::sync::{Mutex, OwnedMutexGuard};
 use wasmtime_wasi_io::streams::{InputStream, OutputStream};
 
+use flux_rs::attrs::*;
+
 /// An impl of [`StdinStream`] built on top of [`AsyncRead`].
 //
 // Note the usage of `tokio::sync::Mutex` here as opposed to a
@@ -46,9 +48,11 @@ impl AsyncStdinStream {
 }
 
 impl StdinStream for AsyncStdinStream {
+    #[trusted]
     fn p2_stream(&self) -> Box<dyn InputStream> {
         Box::new(Self(self.0.clone()))
     }
+    #[trusted]
     fn async_stream(&self) -> Box<dyn AsyncRead + Send + Sync> {
         Box::new(StdioHandle::Ready(self.0.clone()))
     }
@@ -132,9 +136,11 @@ impl AsyncStdoutStream {
 }
 
 impl StdoutStream for AsyncStdoutStream {
+    #[trusted]
     fn p2_stream(&self) -> Box<dyn OutputStream> {
         Box::new(Self(self.0.clone()))
     }
+    #[trusted]
     fn async_stream(&self) -> Box<dyn AsyncWrite + Send + Sync> {
         Box::new(StdoutHandle {
             handle: StdioHandle::Ready(self.0.clone()),
@@ -289,6 +295,7 @@ impl<S> StdioHandle<S>
 where
     S: Send + Sync + 'static,
 {
+    #[trusted]
     fn poll<T>(
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
@@ -350,6 +357,7 @@ where
         }
     }
 
+    #[trusted]
     fn as_locking(
         self: Pin<&mut Self>,
     ) -> Option<Pin<&mut dyn Future<Output = OwnedMutexGuard<S>>>> {

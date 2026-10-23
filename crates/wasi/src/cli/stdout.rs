@@ -7,6 +7,8 @@ use std::task::{Context, Poll};
 use tokio::io::AsyncWrite;
 use wasmtime_wasi_io::streams::OutputStream;
 
+use flux_rs::attrs::*;
+
 // Implementation for tokio::io::Stdout
 impl IsTerminal for tokio::io::Stdout {
     fn is_terminal(&self) -> bool {
@@ -14,9 +16,11 @@ impl IsTerminal for tokio::io::Stdout {
     }
 }
 impl StdoutStream for tokio::io::Stdout {
+    #[trusted]
     fn p2_stream(&self) -> Box<dyn OutputStream> {
         Box::new(StdioOutputStream::Stdout)
     }
+    #[trusted]
     fn async_stream(&self) -> Box<dyn AsyncWrite + Send + Sync> {
         Box::new(StdioOutputStream::Stdout)
     }
@@ -29,9 +33,11 @@ impl IsTerminal for std::io::Stdout {
     }
 }
 impl StdoutStream for std::io::Stdout {
+    #[trusted]
     fn p2_stream(&self) -> Box<dyn OutputStream> {
         Box::new(StdioOutputStream::Stdout)
     }
+    #[trusted]
     fn async_stream(&self) -> Box<dyn AsyncWrite + Send + Sync> {
         Box::new(StdioOutputStream::Stdout)
     }
@@ -44,9 +50,11 @@ impl IsTerminal for tokio::io::Stderr {
     }
 }
 impl StdoutStream for tokio::io::Stderr {
+    #[trusted]
     fn p2_stream(&self) -> Box<dyn OutputStream> {
         Box::new(StdioOutputStream::Stderr)
     }
+    #[trusted]
     fn async_stream(&self) -> Box<dyn AsyncWrite + Send + Sync> {
         Box::new(StdioOutputStream::Stderr)
     }
@@ -59,9 +67,11 @@ impl IsTerminal for std::io::Stderr {
     }
 }
 impl StdoutStream for std::io::Stderr {
+    #[trusted]
     fn p2_stream(&self) -> Box<dyn OutputStream> {
         Box::new(StdioOutputStream::Stderr)
     }
+    #[trusted]
     fn async_stream(&self) -> Box<dyn AsyncWrite + Send + Sync> {
         Box::new(StdioOutputStream::Stderr)
     }

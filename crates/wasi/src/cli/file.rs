@@ -7,6 +7,8 @@ use std::sync::Arc;
 use std::task::{Context, Poll};
 use tokio::io::{self, AsyncRead, AsyncWrite};
 
+use flux_rs::attrs::*;
+
 /// This implementation will yield output streams that block on writes, and
 /// output directly to a file. If truly async output is required,
 /// [`AsyncStdoutStream`] should be used instead.
@@ -32,10 +34,12 @@ impl IsTerminal for OutputFile {
 }
 
 impl StdoutStream for OutputFile {
+    #[trusted]
     fn p2_stream(&self) -> Box<dyn OutputStream> {
         Box::new(self.clone())
     }
 
+    #[trusted]
     fn async_stream(&self) -> Box<dyn AsyncWrite + Send + Sync> {
         Box::new(self.clone())
     }
@@ -103,9 +107,11 @@ impl InputFile {
 }
 
 impl StdinStream for InputFile {
+    #[trusted]
     fn p2_stream(&self) -> Box<dyn InputStream> {
         Box::new(self.clone())
     }
+    #[trusted]
     fn async_stream(&self) -> Box<dyn AsyncRead + Send + Sync> {
         Box::new(self.clone())
     }

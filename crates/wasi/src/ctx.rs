@@ -13,6 +13,8 @@ use std::pin::Pin;
 use tokio::io::{stderr, stdin, stdout};
 use wasmtime::Result;
 
+use flux_rs::attrs::*;
+
 /// Builder-style structure used to create a [`WasiCtx`].
 ///
 /// This type is used to create a [`WasiCtx`] that is considered per-[`Store`]
@@ -80,18 +82,21 @@ impl WasiCtxBuilder {
     ///
     /// Note that inheriting the process's stdin can also be done through
     /// [`inherit_stdin`](WasiCtxBuilder::inherit_stdin).
+    #[trusted]
     pub fn stdin(&mut self, stdin: impl StdinStream + 'static) -> &mut Self {
         self.cli.stdin = Box::new(stdin);
         self
     }
 
     /// Same as [`stdin`](WasiCtxBuilder::stdin), but for stdout.
+    #[trusted]
     pub fn stdout(&mut self, stdout: impl StdoutStream + 'static) -> &mut Self {
         self.cli.stdout = Box::new(stdout);
         self
     }
 
     /// Same as [`stdin`](WasiCtxBuilder::stdin), but for stderr.
+    #[trusted]
     pub fn stderr(&mut self, stderr: impl StdoutStream + 'static) -> &mut Self {
         self.cli.stderr = Box::new(stderr);
         self
@@ -366,6 +371,7 @@ impl WasiCtxBuilder {
     /// Configures `wasi:clocks/wall-clock` to use the `clock` specified.
     ///
     /// By default the host's wall clock is used.
+    #[trusted]
     pub fn wall_clock(&mut self, clock: impl HostWallClock + 'static) -> &mut Self {
         self.clocks.wall_clock = Box::new(clock);
         self
@@ -374,6 +380,7 @@ impl WasiCtxBuilder {
     /// Configures `wasi:clocks/monotonic-clock` to use the `clock` specified.
     ///
     /// By default the host's monotonic clock is used.
+    #[trusted]
     pub fn monotonic_clock(&mut self, clock: impl HostMonotonicClock + 'static) -> &mut Self {
         self.clocks.monotonic_clock = Box::new(clock);
         self
@@ -386,6 +393,7 @@ impl WasiCtxBuilder {
     /// protocol.
     ///
     /// See also [`WasiCtxBuilder::socket_addr_check`].
+    #[trusted]
     pub fn inherit_network(&mut self) -> &mut Self {
         self.socket_addr_check(|_, _| Box::pin(async { true }))
     }

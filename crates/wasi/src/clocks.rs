@@ -5,6 +5,8 @@ use std::marker;
 use std::time::{Duration, Instant, SystemTime};
 use wasmtime::component::{HasData, ResourceTable};
 
+use flux_rs::attrs::*;
+
 /// A helper struct which implements [`HasData`] for the `wasi:clocks` APIs.
 ///
 /// This can be useful when directly calling `add_to_linker` functions directly,
@@ -55,6 +57,7 @@ pub struct WasiClocksCtx {
 }
 
 impl Default for WasiClocksCtx {
+    #[trusted]
     fn default() -> Self {
         Self {
             wall_clock: wall_clock(),
@@ -174,10 +177,12 @@ impl HostMonotonicClock for MonotonicClock {
     }
 }
 
+#[trusted]
 pub fn monotonic_clock() -> Box<dyn HostMonotonicClock + Send> {
     Box::new(MonotonicClock::default())
 }
 
+#[trusted]
 pub fn wall_clock() -> Box<dyn HostWallClock + Send> {
     Box::new(WallClock::default())
 }

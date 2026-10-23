@@ -38,6 +38,7 @@ use wasmtime_wasi_io::{
 };
 
 use crate::MAX_READ_SIZE_ALLOC;
+use flux_rs::attrs::*;
 
 // Implementation for tokio::io::Stdin
 impl IsTerminal for tokio::io::Stdin {
@@ -46,9 +47,11 @@ impl IsTerminal for tokio::io::Stdin {
     }
 }
 impl StdinStream for tokio::io::Stdin {
+    #[trusted]
     fn p2_stream(&self) -> Box<dyn InputStream> {
         Box::new(WasiStdin)
     }
+    #[trusted]
     fn async_stream(&self) -> Box<dyn AsyncRead + Send + Sync> {
         Box::new(WasiStdinAsyncRead::Ready)
     }
@@ -61,9 +64,11 @@ impl IsTerminal for std::io::Stdin {
     }
 }
 impl StdinStream for std::io::Stdin {
+    #[trusted]
     fn p2_stream(&self) -> Box<dyn InputStream> {
         Box::new(WasiStdin)
     }
+    #[trusted]
     fn async_stream(&self) -> Box<dyn AsyncRead + Send + Sync> {
         Box::new(WasiStdinAsyncRead::Ready)
     }
