@@ -4,6 +4,8 @@ use std::convert::Infallible;
 use std::marker;
 use wasmtime::component::HasData;
 
+use flux_rs::{opaque, trusted};
+
 /// A helper struct which implements [`HasData`] for the `wasi:random` APIs.
 ///
 /// This can be useful when directly calling `add_to_linker` functions directly,
@@ -49,6 +51,8 @@ impl HasData for WasiRandom {
 /// cli-flags crate.
 pub const DEFAULT_MAX_SIZE: u64 = 64 << 20;
 
+
+#[opaque]
 pub struct WasiRandomCtx {
     pub(crate) random: Box<dyn Rng + Send>,
     pub(crate) insecure_random: Box<dyn Rng + Send>,
@@ -57,6 +61,7 @@ pub struct WasiRandomCtx {
 }
 
 impl Default for WasiRandomCtx {
+    #[trusted]
     fn default() -> Self {
         // For the insecure random API, use `SmallRng`, which is fast. It's
         // also insecure, but that's the deal here.
@@ -134,6 +139,7 @@ mod test {
     }
 }
 
+#[trusted]
 pub fn thread_rng() -> Box<dyn Rng + Send> {
     let mut rng = rand::rng();
     Box::new(rand::rngs::StdRng::from_rng(&mut rng))

@@ -1,3 +1,4 @@
+
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 //! # Wasmtime's WASI Implementation
@@ -28,27 +29,54 @@
 /// performance will be improved if this limit were higher or removed. Doing so
 /// without exposing hosts to guest-controlled resource exhaustion is the
 /// important part, though.
+
+
 const MAX_READ_SIZE_ALLOC: usize = 64 * 1024;
 
+#[flux_rs::ignore]
 pub mod cli;
+
+#[flux_rs::ignore]
 pub mod clocks;
+
+#[flux_rs::ignore]
 mod ctx;
+
+#[flux_rs::ignore]
 mod error;
+
 pub mod filesystem;
+
+#[flux_rs::ignore]
 #[cfg(feature = "p1")]
 pub mod p0;
+
+#[flux_rs::ignore]
 #[cfg(feature = "p1")]
-pub mod p1;
+pub mod p1; // !
 // FIXME: should gate this module on the `p2` feature but that will require more
 // internal refactoring to get that aligned right.
 // #[cfg(feature = "p2")]
-pub mod p2;
+
+#[flux_rs::ignore]
+pub mod p2; // !
+
+
 #[cfg(feature = "p3")]
-pub mod p3;
-pub mod random;
-pub mod runtime;
-pub mod sockets;
-mod view;
+#[flux_rs::ignore]
+pub mod p3; // !
+
+#[flux_rs::ignore]
+pub mod random; // !
+
+#[flux_rs::ignore]
+pub mod runtime; // !
+
+#[flux_rs::ignore]
+pub mod sockets; // !
+
+#[flux_rs::ignore]
+mod view; // !
 
 pub use self::clocks::{HostMonotonicClock, HostWallClock};
 pub use self::ctx::*;

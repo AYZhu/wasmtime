@@ -331,6 +331,8 @@ impl WasiCtxBuilder {
     /// unpredictable random data in order to maintain its security invariants,
     /// and ideally should use the insecure random API otherwise, so using any
     /// prerecorded or otherwise predictable data may compromise security.
+    
+    #[trusted]
     pub fn secure_random(&mut self, random: impl Rng + Send + 'static) -> &mut Self {
         self.random.random = Box::new(random);
         self
@@ -340,6 +342,7 @@ impl WasiCtxBuilder {
     ///
     /// The `insecure_random` generator provided will be used for all randomness
     /// requested by the `wasi:random/insecure` interface.
+    #[trusted]
     pub fn insecure_random(&mut self, insecure_random: impl Rng + Send + 'static) -> &mut Self {
         self.random.insecure_random = Box::new(insecure_random);
         self
@@ -349,6 +352,7 @@ impl WasiCtxBuilder {
     /// the specified custom value.
     ///
     /// By default this number is randomly generated when a builder is created.
+    #[trusted]
     pub fn insecure_random_seed(&mut self, insecure_random_seed: u128) -> &mut Self {
         self.random.insecure_random_seed = insecure_random_seed;
         self
@@ -363,6 +367,8 @@ impl WasiCtxBuilder {
     /// from memory exhaustion from untrusted guest input. A limit of `u64::MAX`
     /// is equivalent to no limit, but note that this enables a guest to also
     /// force the host to attempt an allocation of that size.
+    
+    #[trusted]
     pub fn max_random_size(&mut self, max_size: u64) -> &mut Self {
         self.random.max_size = max_size;
         self

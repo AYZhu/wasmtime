@@ -2,7 +2,9 @@ use rustix::fs::{UTIME_NOW, UTIME_OMIT};
 use rustix::time::Timespec;
 use std::io;
 use std::time::SystemTime;
+use flux_rs::trusted;
 
+#[trusted]
 pub(crate) fn to_timespec(ft: Option<SystemTime>) -> io::Result<Timespec> {
     Ok(match ft {
         None => Timespec {
