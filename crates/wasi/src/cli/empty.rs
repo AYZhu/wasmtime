@@ -13,6 +13,8 @@ impl IsTerminal for tokio::io::Empty {
         false
     }
 }
+
+#[trusted]
 impl StdinStream for tokio::io::Empty {
     fn p2_stream(&self) -> Box<dyn InputStream> {
         Box::new(p2::pipe::ClosedInputStream)

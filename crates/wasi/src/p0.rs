@@ -9,6 +9,9 @@ use crate::p1::types as snapshot1_types;
 use crate::p1::wasi_snapshot_preview1::WasiSnapshotPreview1 as Snapshot1;
 use wiggle::{GuestError, GuestMemory, GuestPtr};
 
+
+use flux_rs::trusted;
+
 pub fn add_to_linker_async<T: Send + 'static>(
     linker: &mut wasmtime::Linker<T>,
     f: impl Fn(&mut T) -> &mut WasiP1Ctx + Copy + Send + Sync + 'static,
@@ -128,6 +131,7 @@ impl wasi_unstable::WasiUnstable for WasiP1Ctx {
         Ok(t)
     }
 
+    #[trusted]
     async fn fd_advise(
         &mut self,
         memory: &mut GuestMemory<'_>,
@@ -151,11 +155,13 @@ impl wasi_unstable::WasiUnstable for WasiP1Ctx {
         Ok(())
     }
 
+    #[trusted]
     async fn fd_close(&mut self, memory: &mut GuestMemory<'_>, fd: types::Fd) -> Result<(), Error> {
         Snapshot1::fd_close(self, memory, fd.into()).await?;
         Ok(())
     }
 
+    #[trusted]
     async fn fd_datasync(
         &mut self,
         memory: &mut GuestMemory<'_>,
@@ -165,6 +171,7 @@ impl wasi_unstable::WasiUnstable for WasiP1Ctx {
         Ok(())
     }
 
+    #[trusted]
     async fn fd_fdstat_get(
         &mut self,
         memory: &mut GuestMemory<'_>,
@@ -202,6 +209,8 @@ impl wasi_unstable::WasiUnstable for WasiP1Ctx {
         Ok(())
     }
 
+    
+    #[trusted]
     async fn fd_filestat_get(
         &mut self,
         memory: &mut GuestMemory<'_>,
@@ -212,6 +221,7 @@ impl wasi_unstable::WasiUnstable for WasiP1Ctx {
             .into())
     }
 
+    #[trusted]
     async fn fd_filestat_set_size(
         &mut self,
         memory: &mut GuestMemory<'_>,
@@ -222,6 +232,7 @@ impl wasi_unstable::WasiUnstable for WasiP1Ctx {
         Ok(())
     }
 
+    #[trusted]
     async fn fd_filestat_set_times(
         &mut self,
         memory: &mut GuestMemory<'_>,
@@ -235,6 +246,7 @@ impl wasi_unstable::WasiUnstable for WasiP1Ctx {
         Ok(())
     }
 
+    #[trusted]
     async fn fd_read(
         &mut self,
         memory: &mut GuestMemory<'_>,
@@ -246,6 +258,7 @@ impl wasi_unstable::WasiUnstable for WasiP1Ctx {
         Ok(result)
     }
 
+    #[trusted]
     async fn fd_pread(
         &mut self,
         memory: &mut GuestMemory<'_>,
@@ -258,6 +271,7 @@ impl wasi_unstable::WasiUnstable for WasiP1Ctx {
         Ok(result)
     }
 
+    #[trusted]
     async fn fd_write(
         &mut self,
         memory: &mut GuestMemory<'_>,
@@ -269,6 +283,7 @@ impl wasi_unstable::WasiUnstable for WasiP1Ctx {
         Ok(result)
     }
 
+    #[trusted]
     async fn fd_pwrite(
         &mut self,
         memory: &mut GuestMemory<'_>,
@@ -300,6 +315,7 @@ impl wasi_unstable::WasiUnstable for WasiP1Ctx {
         Ok(())
     }
 
+    #[trusted]
     async fn fd_renumber(
         &mut self,
         memory: &mut GuestMemory<'_>,
@@ -310,6 +326,7 @@ impl wasi_unstable::WasiUnstable for WasiP1Ctx {
         Ok(())
     }
 
+    #[trusted]
     async fn fd_seek(
         &mut self,
         memory: &mut GuestMemory<'_>,
@@ -320,6 +337,7 @@ impl wasi_unstable::WasiUnstable for WasiP1Ctx {
         Ok(Snapshot1::fd_seek(self, memory, fd.into(), offset, whence.into()).await?)
     }
 
+    #[trusted]
     async fn fd_sync(&mut self, memory: &mut GuestMemory<'_>, fd: types::Fd) -> Result<(), Error> {
         Snapshot1::fd_sync(self, memory, fd.into()).await?;
         Ok(())
@@ -333,6 +351,7 @@ impl wasi_unstable::WasiUnstable for WasiP1Ctx {
         Ok(Snapshot1::fd_tell(self, memory, fd.into())?)
     }
 
+    #[trusted]
     async fn fd_readdir(
         &mut self,
         memory: &mut GuestMemory<'_>,
@@ -344,6 +363,7 @@ impl wasi_unstable::WasiUnstable for WasiP1Ctx {
         Ok(Snapshot1::fd_readdir(self, memory, fd.into(), buf, buf_len, cookie).await?)
     }
 
+    #[trusted]
     async fn path_create_directory(
         &mut self,
         memory: &mut GuestMemory<'_>,
@@ -354,6 +374,7 @@ impl wasi_unstable::WasiUnstable for WasiP1Ctx {
         Ok(())
     }
 
+    #[trusted]
     async fn path_filestat_get(
         &mut self,
         memory: &mut GuestMemory<'_>,
@@ -368,6 +389,7 @@ impl wasi_unstable::WasiUnstable for WasiP1Ctx {
         )
     }
 
+    #[trusted]
     async fn path_filestat_set_times(
         &mut self,
         memory: &mut GuestMemory<'_>,
@@ -392,6 +414,7 @@ impl wasi_unstable::WasiUnstable for WasiP1Ctx {
         Ok(())
     }
 
+    #[trusted]
     async fn path_link(
         &mut self,
         memory: &mut GuestMemory<'_>,
@@ -414,6 +437,7 @@ impl wasi_unstable::WasiUnstable for WasiP1Ctx {
         Ok(())
     }
 
+    #[trusted]
     async fn path_open(
         &mut self,
         memory: &mut GuestMemory<'_>,
@@ -440,6 +464,7 @@ impl wasi_unstable::WasiUnstable for WasiP1Ctx {
         .into())
     }
 
+    #[trusted]
     async fn path_readlink(
         &mut self,
         memory: &mut GuestMemory<'_>,
@@ -451,6 +476,7 @@ impl wasi_unstable::WasiUnstable for WasiP1Ctx {
         Ok(Snapshot1::path_readlink(self, memory, dirfd.into(), path, buf, buf_len).await?)
     }
 
+    #[trusted]
     async fn path_remove_directory(
         &mut self,
         memory: &mut GuestMemory<'_>,
@@ -461,6 +487,7 @@ impl wasi_unstable::WasiUnstable for WasiP1Ctx {
         Ok(())
     }
 
+    #[trusted]
     async fn path_rename(
         &mut self,
         memory: &mut GuestMemory<'_>,
@@ -481,6 +508,7 @@ impl wasi_unstable::WasiUnstable for WasiP1Ctx {
         Ok(())
     }
 
+    #[trusted]
     async fn path_symlink(
         &mut self,
         memory: &mut GuestMemory<'_>,
@@ -492,6 +520,7 @@ impl wasi_unstable::WasiUnstable for WasiP1Ctx {
         Ok(())
     }
 
+    #[trusted]
     async fn path_unlink_file(
         &mut self,
         memory: &mut GuestMemory<'_>,
@@ -510,6 +539,8 @@ impl wasi_unstable::WasiUnstable for WasiP1Ctx {
     // the old values are restored to pretend like we didn't overwrite them.
     //
     // Surely no one would pass overlapping pointers to this API right?
+
+    #[trusted]
     async fn poll_oneoff(
         &mut self,
         memory: &mut GuestMemory<'_>,

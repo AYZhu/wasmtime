@@ -9,6 +9,7 @@ use std::time::SystemTime;
 use tracing::debug;
 use wasmtime::component::{HasData, Resource, ResourceTable};
 use wasmtime::error::Context as _;
+use flux_rs::{opaque, trusted};
 
 #[cfg(unix)]
 pub(crate) mod unix;
@@ -99,6 +100,7 @@ pub trait WasiFilesystemView: Send {
 /// These permissions are enforced by wasmtime-wasi. The host filesystem may
 /// enforce additional restrictions not covered by these.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[opaque]
 pub enum FsPerms {
     // Only read operations are permitted - no mutation permitted
     ReadOnly,
@@ -115,84 +117,96 @@ impl FsPerms {
     }
 }
 
-bitflags::bitflags! {
-    #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-    pub struct OpenMode: usize {
-        const READ = 0b1;
-        const WRITE = 0b10;
+#[flux_rs::trusted]
+mod open_mode{
+    bitflags::bitflags! {
+        #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+        pub struct OpenMode: usize {
+            const READ = 0b1;
+            const WRITE = 0b10;
+        }
     }
 }
 
-bitflags::bitflags! {
-    /// Flags determining the method of how paths are resolved.
-    #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-    pub(crate) struct PathFlags: usize {
-        /// This directory can be read, for example its entries can be iterated
-        /// over and files can be opened.
-        const SYMLINK_FOLLOW = 0b1;
+
+#[flux_rs::trusted]
+mod flags 
+{
+
+    bitflags::bitflags! {
+        /// Flags determining the method of how paths are resolved.
+        #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+        pub(crate) struct PathFlags: usize {
+            /// This directory can be read, for example its entries can be iterated
+            /// over and files can be opened.
+            const SYMLINK_FOLLOW = 0b1;
+        }
+    }
+
+    bitflags::bitflags! {
+        /// Open flags used by `open-at`.
+        #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+        pub(crate) struct OpenFlags: usize {
+            /// Create file if it does not exist, similar to `O_CREAT` in POSIX.
+            const CREATE = 0b1;
+            /// Fail if not a directory, similar to `O_DIRECTORY` in POSIX.
+            const DIRECTORY = 0b10;
+            /// Fail if file already exists, similar to `O_EXCL` in POSIX.
+            const EXCLUSIVE = 0b100;
+            /// Truncate file to size 0, similar to `O_TRUNC` in POSIX.
+            const TRUNCATE = 0b1000;
+        }
+    }
+
+    bitflags::bitflags! {
+        /// Descriptor flags.
+        ///
+        /// Note: This was called `fdflags` in earlier versions of WASI.
+        #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+        pub(crate) struct DescriptorFlags: usize {
+            /// Read mode: Data can be read.
+            const READ = 0b1;
+            /// Write mode: Data can be written to.
+            const WRITE = 0b10;
+            /// Request that writes be performed according to synchronized I/O file
+            /// integrity completion. The data stored in the file and the file's
+            /// metadata are synchronized. This is similar to `O_SYNC` in POSIX.
+            ///
+            /// The precise semantics of this operation have not yet been defined for
+            /// WASI. At this time, it should be interpreted as a request, and not a
+            /// requirement.
+            const FILE_INTEGRITY_SYNC = 0b100;
+            /// Request that writes be performed according to synchronized I/O data
+            /// integrity completion. Only the data stored in the file is
+            /// synchronized. This is similar to `O_DSYNC` in POSIX.
+            ///
+            /// The precise semantics of this operation have not yet been defined for
+            /// WASI. At this time, it should be interpreted as a request, and not a
+            /// requirement.
+            const DATA_INTEGRITY_SYNC = 0b1000;
+            /// Requests that reads be performed at the same level of integrity
+            /// requested for writes. This is similar to `O_RSYNC` in POSIX.
+            ///
+            /// The precise semantics of this operation have not yet been defined for
+            /// WASI. At this time, it should be interpreted as a request, and not a
+            /// requirement.
+            const REQUESTED_WRITE_SYNC = 0b10000;
+            /// Mutating directories mode: Directory contents may be mutated.
+            ///
+            /// When this flag is unset on a descriptor, operations using the
+            /// descriptor which would create, rename, delete, modify the data or
+            /// metadata of filesystem objects, or obtain another handle which
+            /// would permit any of those, shall fail with `error-code::read-only` if
+            /// they would otherwise succeed.
+            ///
+            /// This may only be set on directories.
+            const MUTATE_DIRECTORY = 0b100000;
+        }
     }
 }
 
-bitflags::bitflags! {
-    /// Open flags used by `open-at`.
-    #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-    pub(crate) struct OpenFlags: usize {
-        /// Create file if it does not exist, similar to `O_CREAT` in POSIX.
-        const CREATE = 0b1;
-        /// Fail if not a directory, similar to `O_DIRECTORY` in POSIX.
-        const DIRECTORY = 0b10;
-        /// Fail if file already exists, similar to `O_EXCL` in POSIX.
-        const EXCLUSIVE = 0b100;
-        /// Truncate file to size 0, similar to `O_TRUNC` in POSIX.
-        const TRUNCATE = 0b1000;
-    }
-}
-
-bitflags::bitflags! {
-    /// Descriptor flags.
-    ///
-    /// Note: This was called `fdflags` in earlier versions of WASI.
-    #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-    pub(crate) struct DescriptorFlags: usize {
-        /// Read mode: Data can be read.
-        const READ = 0b1;
-        /// Write mode: Data can be written to.
-        const WRITE = 0b10;
-        /// Request that writes be performed according to synchronized I/O file
-        /// integrity completion. The data stored in the file and the file's
-        /// metadata are synchronized. This is similar to `O_SYNC` in POSIX.
-        ///
-        /// The precise semantics of this operation have not yet been defined for
-        /// WASI. At this time, it should be interpreted as a request, and not a
-        /// requirement.
-        const FILE_INTEGRITY_SYNC = 0b100;
-        /// Request that writes be performed according to synchronized I/O data
-        /// integrity completion. Only the data stored in the file is
-        /// synchronized. This is similar to `O_DSYNC` in POSIX.
-        ///
-        /// The precise semantics of this operation have not yet been defined for
-        /// WASI. At this time, it should be interpreted as a request, and not a
-        /// requirement.
-        const DATA_INTEGRITY_SYNC = 0b1000;
-        /// Requests that reads be performed at the same level of integrity
-        /// requested for writes. This is similar to `O_RSYNC` in POSIX.
-        ///
-        /// The precise semantics of this operation have not yet been defined for
-        /// WASI. At this time, it should be interpreted as a request, and not a
-        /// requirement.
-        const REQUESTED_WRITE_SYNC = 0b10000;
-        /// Mutating directories mode: Directory contents may be mutated.
-        ///
-        /// When this flag is unset on a descriptor, operations using the
-        /// descriptor which would create, rename, delete, modify the data or
-        /// metadata of filesystem objects, or obtain another handle which
-        /// would permit any of those, shall fail with `error-code::read-only` if
-        /// they would otherwise succeed.
-        ///
-        /// This may only be set on directories.
-        const MUTATE_DIRECTORY = 0b100000;
-    }
-}
+pub(crate) use flags::*;
+pub use open_mode::OpenMode;
 
 /// Error codes returned by functions, similar to `errno` in POSIX.
 /// Not all of these error codes are returned by the functions provided by this
@@ -295,6 +309,7 @@ impl From<crate::filesystem::primitives::FileType> for DescriptorType {
 /// File attributes.
 ///
 /// Note: This was called `filestat` in earlier versions of WASI.
+#[opaque]
 pub(crate) struct DescriptorStat {
     /// File type.
     pub type_: DescriptorType,
@@ -320,9 +335,13 @@ pub(crate) struct DescriptorStat {
     pub status_change_timestamp: Option<Datetime>,
 }
 
+#[opaque]
 impl DescriptorStat {
     /// Creates a `DescriptorStat` from a `Metadata` plus the hard link
     /// count.
+
+
+    #[trusted]
     fn new(meta: &Metadata, link_count: u64) -> Self {
         Self {
             type_: meta.file_type().into(),
@@ -719,6 +738,8 @@ impl File {
     /// - [`crate::WasiCtxBuilder::allow_blocking_current_thread`]
     /// - [Poor performance of wasmtime file I/O maybe because tokio](https://github.com/bytecodealliance/wasmtime/issues/7973)
     /// - [Implement opt-in for enabling WASI to block the current thread](https://github.com/bytecodealliance/wasmtime/pull/8190)
+    
+    #[trusted]
     pub(crate) async fn run_blocking<F, R>(&self, body: F) -> R
     where
         F: FnOnce(&std::fs::File) -> R + Send + 'static,
@@ -730,6 +751,7 @@ impl File {
         }
     }
 
+    #[flux_rs::ignore]
     pub(crate) fn spawn_blocking<F, R>(&self, body: F) -> AbortOnDropJoinHandle<R>
     where
         F: FnOnce(&std::fs::File) -> R + Send + 'static,
@@ -742,6 +764,7 @@ impl File {
     /// Returns `Some` when the current thread is allowed to block in filesystem
     /// operations, and otherwise returns `None` to indicate that
     /// `spawn_blocking` must be used.
+    #[trusted]
     pub(crate) fn as_blocking_file(&self) -> Option<&std::fs::File> {
         if self.allow_blocking_current_thread {
             Some(&self.file)
@@ -831,6 +854,8 @@ impl Dir {
     /// - [`crate::WasiCtxBuilder::allow_blocking_current_thread`]
     /// - [Poor performance of wasmtime file I/O maybe because tokio](https://github.com/bytecodealliance/wasmtime/issues/7973)
     /// - [Implement opt-in for enabling WASI to block the current thread](https://github.com/bytecodealliance/wasmtime/pull/8190)
+    
+    #[trusted]
     pub(crate) async fn run_blocking<F, R>(&self, body: F) -> R
     where
         F: FnOnce(&std::fs::File) -> R + Send + 'static,
@@ -1295,6 +1320,7 @@ where
 ///     }
 /// }
 /// ```
+
 pub trait WasiFilesystemNamedView: Send + 'static {
     /// Looks up the [`WasiFilesystemCtxView`] for the given [`NamedId`].
     ///
@@ -1313,5 +1339,6 @@ pub trait WasiFilesystemNamedView: Send + 'static {
     /// [`WasiFilesystemCtxView`] need not be unique. It's ok to use the same
     /// [`ResourceTable`] for all imports. This is not a guest-visible
     /// abstraction and just helps the host allocate and manage state.
+    #[flux_rs::ignore]
     fn filesystem(&mut self, id: NamedId) -> WasiFilesystemCtxView<'_>;
 }

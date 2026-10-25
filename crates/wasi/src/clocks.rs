@@ -197,6 +197,7 @@ pub(crate) struct Datetime {
 impl TryFrom<SystemTime> for Datetime {
     type Error = DatetimeError;
 
+    #[trusted]
     fn try_from(time: SystemTime) -> Result<Self, Self::Error> {
         match time.duration_since(SystemTime::UNIX_EPOCH) {
             Ok(duration) => Ok(Self {
