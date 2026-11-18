@@ -179,9 +179,6 @@ impl<'a> GuestMemory<'a> {
     ///
     /// This is useful when one cannot use [`GuestMemory::as_slice`], e.g., when
     /// pointing to a region of WebAssembly shared memory.
-
-    #[trusted]
-    // #[spec(fn <T>(&GuestMemory, ptr: GuestPtr<[T]>) -> Result<Vec<T>, GuestError>)]
     pub fn to_vec<T>(&self, ptr: GuestPtr<[T]>) -> Result<Vec<T>, GuestError>
     where
         T: GuestTypeTransparent + Copy,
@@ -191,13 +188,14 @@ impl<'a> GuestMemory<'a> {
         let mut host = Vec::with_capacity(guest.len());
 
         //
-        // AYZTODO: For some reason, we can't prove
-        //          valid(dst_p, count * T::size_of()), even though we can
-        //          prove it when we assert that the size is 0, or that the
-        //          size is non-zero. This is probably a weakness in the
-        //          underlying SMT solver? For now, assert size is non-zero,
-        //          which is realistic.
-        assert!(size_of::<T>() > 0);
+        // AYZTODO: This should be guaranteed by the properties of UnsafeCell.
+        //          However, we should spend a little bit of time auditing the
+        //          assumptions made by the [].as_ptr and Vec.as_mut_ptr extern
+        //          specs: in particular, the Rust documentation for UnsafeCell
+        //          explains that Outer<UnsafeCell<T>> may differ from Outer<T>...
+        //
+        assert!(size_of::<T>() == size_of::<UnsafeCell<T>>());
+        assert!(align_of::<T>() == align_of::<UnsafeCell<T>>());
 
         // SAFETY: The `guest_slice` variable is already a valid pointer into
         // the guest's memory, and it may or may not be a pointer into shared
@@ -228,7 +226,6 @@ impl<'a> GuestMemory<'a> {
     ///
     /// Returns an error if this guest pointer is out of bounds or if the length
     /// of this guest pointer is not equal to the length of the slice provided.
-    #[trusted]
     pub fn copy_from_slice<T>(&mut self, slice: &[T], ptr: GuestPtr<[T]>) -> Result<(), GuestError>
     where
         T: GuestTypeTransparent + Copy,
@@ -251,6 +248,10 @@ impl<'a> GuestMemory<'a> {
         // Also note that the validity of `guest_slice` has already been
         // determined by the `as_unsafe_slice_mut` call above.
         assert_eq!(guest.len(), slice.len());
+
+        assert!(size_of::<T>() == size_of::<UnsafeCell<T>>());
+        assert!(align_of::<T>() == align_of::<UnsafeCell<T>>());
+    
         unsafe {
             let guest: &[UnsafeCell<T>] = guest;
             let guest: *const UnsafeCell<T> = guest.as_ptr();
