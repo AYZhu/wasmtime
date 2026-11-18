@@ -24,6 +24,7 @@ pub use witx;
 mod guest_error;
 mod guest_type;
 mod region;
+mod tcb;
 
 pub use tracing;
 
@@ -179,15 +180,24 @@ impl<'a> GuestMemory<'a> {
     /// This is useful when one cannot use [`GuestMemory::as_slice`], e.g., when
     /// pointing to a region of WebAssembly shared memory.
 
-    // AYZTODO: This one.
-
     #[trusted]
+    // #[spec(fn <T>(&GuestMemory, ptr: GuestPtr<[T]>) -> Result<Vec<T>, GuestError>)]
     pub fn to_vec<T>(&self, ptr: GuestPtr<[T]>) -> Result<Vec<T>, GuestError>
     where
         T: GuestTypeTransparent + Copy,
     {
-        let guest = self.validate_size_align::<T>(ptr.pointer.0, ptr.pointer.1)?;
+        let ptr = ptr.pointer;
+        let guest = self.validate_size_align::<T>(ptr.0, ptr.1)?;
         let mut host = Vec::with_capacity(guest.len());
+
+        //
+        // AYZTODO: For some reason, we can't prove
+        //          valid(dst_p, count * T::size_of()), even though we can
+        //          prove it when we assert that the size is 0, or that the
+        //          size is non-zero. This is probably a weakness in the
+        //          underlying SMT solver? For now, assert size is non-zero,
+        //          which is realistic.
+        assert!(size_of::<T>() > 0);
 
         // SAFETY: The `guest_slice` variable is already a valid pointer into
         // the guest's memory, and it may or may not be a pointer into shared
@@ -218,8 +228,6 @@ impl<'a> GuestMemory<'a> {
     ///
     /// Returns an error if this guest pointer is out of bounds or if the length
     /// of this guest pointer is not equal to the length of the slice provided.
-    
-    // AYZTODO: This one.
     #[trusted]
     pub fn copy_from_slice<T>(&mut self, slice: &[T], ptr: GuestPtr<[T]>) -> Result<(), GuestError>
     where
@@ -232,7 +240,8 @@ impl<'a> GuestMemory<'a> {
             return Ok(());
         }
 
-        let guest = self.validate_size_align::<T>(ptr.pointer.0, ptr.pointer.1)?;
+        let ptr = ptr.pointer;
+        let guest = self.validate_size_align::<T>(ptr.0, ptr.1)?;
 
         // SAFETY: in the shared memory case, we copy and accept that
         // the guest data may be concurrently modified. TODO: audit that
@@ -264,8 +273,21 @@ impl<'a> GuestMemory<'a> {
     /// `mem` for units of `T`, assuming everything is in-bounds and properly
     /// aligned. Additionally the byte-based `Region` is returned, used for borrows
     /// later on.
-    // AYZTODO: This one.
+
     #[trusted]
+    #[sig(fn (&GuestMemory[@mem]) -> &[UnsafeCell<u8>][mem.length])]
+    fn as_unsafe_cells(&self) -> &[UnsafeCell<u8>] {
+        return match self {
+            GuestMemory::Unshared(s) => {
+                let s: &[u8] = s;
+                // AYZTODO: This maintains size throughout because it's a fat pointer, but sheesh.
+                unsafe { &*(s as *const [u8] as *const [UnsafeCell<u8>]) }
+            }
+            GuestMemory::Shared(s) => s,
+        };
+    }
+
+    #[sig(fn (&GuestMemory, offset: u32, len: u32) -> Result<&[UnsafeCell<T>], GuestError>)]
     fn validate_size_align<T>(&self, offset: u32, len: u32) -> Result<&[UnsafeCell<T>], GuestError>
     where
         T: GuestTypeTransparent,
@@ -273,13 +295,7 @@ impl<'a> GuestMemory<'a> {
         let range = self.validate_range::<T>(offset, len)?;
         let s = range.start;
         let e = range.end;
-        let cells = match self {
-            GuestMemory::Unshared(s) => {
-                let s: &[u8] = s;
-                unsafe { &*(s as *const [u8] as *const [UnsafeCell<u8>]) }
-            }
-            GuestMemory::Shared(s) => s,
-        };
+        let cells = self.as_unsafe_cells();
         let memory = &cells[range];
 
         // ... and then align it to `T`, failing if either the head or tail slices
@@ -287,6 +303,12 @@ impl<'a> GuestMemory<'a> {
         // and should be ok since the input slice is `UnsafeCell<u8>` and the output
         // slice is `UnsafeCell<T>`, meaning the only guarantee of the output is
         // that it's valid addressable memory, still unsafe to actually access.
+        
+        //
+        // AYZTODO: We should maybe think about some Flux precondition that
+        //          specifies this alignment behavior. Need to prove that the
+        //          unsafe cell aligns with p.
+        //
         assert!(mem::align_of::<T>() <= T::guest_align());
         let (start, mid, end) = unsafe { memory.align_to() };
         if start.len() > 0 || end.len() > 0 {
