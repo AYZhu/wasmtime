@@ -69,6 +69,7 @@ macro_rules! integer_primitives {
             #[inline]
             fn guest_align() -> usize { mem::align_of::<Self>() }
 
+            // AYZTODO
             #[inline]
             #[trusted]
             fn read(mem: &GuestMemory, ptr: GuestPtr<Self>) -> Result<Self, GuestError> {
@@ -95,6 +96,7 @@ macro_rules! integer_primitives {
                 Ok($ty::from_le(val))
             }
 
+            // AYZTODO
             #[trusted]
             #[inline]
             fn write(mem: &mut GuestMemory, ptr: GuestPtr<Self>, val: Self) -> Result<(), GuestError> {

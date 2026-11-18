@@ -8,6 +8,9 @@ use wasmtime_environ::error::{Result, bail};
 
 use flux_rs::attrs::*;
 
+#[allow(unused_imports)]
+use flux_core::*;
+
 pub use wiggle_macro::from_witx;
 
 pub use wasmtime_environ::error;
@@ -21,7 +24,6 @@ pub use witx;
 mod guest_error;
 mod guest_type;
 mod region;
-mod tcb;
 
 pub use tracing;
 
@@ -137,10 +139,9 @@ impl<'a> GuestMemory<'a> {
     ///
     /// An error is returned if `ptr` is out of bounds, misaligned, or otherwise
     /// not valid to read from.
-    
-    #[trusted]
     pub fn as_slice(&self, ptr: GuestPtr<[u8]>) -> Result<Option<&[u8]>, GuestError> {
-        let range = self.validate_range::<u8>(ptr.pointer.0, ptr.pointer.1)?;
+        let ptr = ptr.pointer;
+        let range = self.validate_range::<u8>(ptr.0, ptr.1)?;
         match self {
             GuestMemory::Unshared(slice) => Ok(Some(&slice[range])),
             GuestMemory::Shared(_) => Ok(None),
@@ -160,10 +161,12 @@ impl<'a> GuestMemory<'a> {
     ///
     /// Like [`GuestMemory::as_slice`] this only works for `Unshared` memories
     /// and will not work for `Shared` memories.
-    
+
+    // AYZTODO: Looks like some kind of Flux refinement bug, since as_slice does this correctly.
+    //          Need to take a closer look.
+    #[trusted]
     pub fn as_slice_mut(&mut self, ptr: GuestPtr<[u8]>) -> Result<Option<&mut [u8]>, GuestError> {
         let ptr = ptr.pointer;
-        // TODO (alz034)
         let range = self.validate_range::<u8>(ptr.0, ptr.1)?;
         return match self {
             GuestMemory::Unshared(slice) => Ok(Some(&mut slice[range])),
@@ -175,6 +178,8 @@ impl<'a> GuestMemory<'a> {
     ///
     /// This is useful when one cannot use [`GuestMemory::as_slice`], e.g., when
     /// pointing to a region of WebAssembly shared memory.
+
+    // AYZTODO: This one.
 
     #[trusted]
     pub fn to_vec<T>(&self, ptr: GuestPtr<[T]>) -> Result<Vec<T>, GuestError>
@@ -214,6 +219,7 @@ impl<'a> GuestMemory<'a> {
     /// Returns an error if this guest pointer is out of bounds or if the length
     /// of this guest pointer is not equal to the length of the slice provided.
     
+    // AYZTODO: This one.
     #[trusted]
     pub fn copy_from_slice<T>(&mut self, slice: &[T], ptr: GuestPtr<[T]>) -> Result<(), GuestError>
     where
@@ -258,11 +264,15 @@ impl<'a> GuestMemory<'a> {
     /// `mem` for units of `T`, assuming everything is in-bounds and properly
     /// aligned. Additionally the byte-based `Region` is returned, used for borrows
     /// later on.
+    // AYZTODO: This one.
+    #[trusted]
     fn validate_size_align<T>(&self, offset: u32, len: u32) -> Result<&[UnsafeCell<T>], GuestError>
     where
         T: GuestTypeTransparent,
     {
         let range = self.validate_range::<T>(offset, len)?;
+        let s = range.start;
+        let e = range.end;
         let cells = match self {
             GuestMemory::Unshared(s) => {
                 let s: &[u8] = s;
@@ -270,7 +280,7 @@ impl<'a> GuestMemory<'a> {
             }
             GuestMemory::Shared(s) => s,
         };
-        let memory = &cells[range.clone()];
+        let memory = &cells[range];
 
         // ... and then align it to `T`, failing if either the head or tail slices
         // are nonzero in length. This `unsafe` here is from the standard library
@@ -281,24 +291,18 @@ impl<'a> GuestMemory<'a> {
         let (start, mid, end) = unsafe { memory.align_to() };
         if start.len() > 0 || end.len() > 0 {
             let region = Region {
-                start: range.start as u32,
-                len: range.len() as u32,
+                start: s as u32,
+                len: e as u32,
             };
             return Err(GuestError::PtrNotAligned(region, T::guest_align() as u32));
         }
         Ok(mid)
     }
 
-    //
-    // TODO (alz034): This is the core of the pointer validation logic. We
-    //                should be able to build our predicates up from here,
-    //                if we can write the right one.
-    //
-    // #[sig(fn <T>(&GuestMemory[@mem], offset: u32, len: u32) -> Result<Range<usize>, GuestError>[
-    //     {okay: offset < mem.length &&
-    //         mem.length < u32::MAX &&
-    //         offset + len * T::guest_size() < mem.length }
-    // ])]
+    // AYZTODO: We should probably make it possible for Flux to understand Clone?
+    #[sig(fn <T>(&GuestMemory[@mem], offset: u32, len: u32) -> Result<Range<usize> {
+        r: r.start <= r.end && r.end <= mem.length
+    }, GuestError>)]
     fn validate_range<T>(&self, offset: u32, len: u32) -> Result<Range<usize>, GuestError>
     where
         T: GuestTypeTransparent,
@@ -315,17 +319,18 @@ impl<'a> GuestMemory<'a> {
 
         let range = offset..offset + byte_len;
         let oob = match self {
-            GuestMemory::Unshared(b) => b.get(range.clone()).is_none(),
-            GuestMemory::Shared(b) => b.get(range.clone()).is_none(),
+            GuestMemory::Unshared(b) => b.get(range).is_none(),
+            GuestMemory::Shared(b) => b.get(range).is_none(),
         };
         if oob {
             Err(GuestError::PtrOutOfBounds(region))
         } else {
-            Ok(range)
+            Ok(offset..offset + byte_len)
         }
     }
 
     /// Returns whether this is a shared memory or not.
+    #[sig(fn (&GuestMemory[@mem]) -> bool[mem.shared])]
     pub fn is_shared_memory(&self) -> bool {
         match self {
             GuestMemory::Shared(_) => true,
@@ -495,6 +500,7 @@ impl<T> GuestPtr<[T]> {
         GuestPtr::new(self.offset_base())
     }
 
+    #[trusted]
     pub fn get(&self, index: u32) -> Option<GuestPtr<T>>
     where
         T: GuestType,
@@ -510,6 +516,7 @@ impl<T> GuestPtr<[T]> {
         }
     }
 
+    #[trusted]
     pub fn get_range(&self, r: std::ops::Range<u32>) -> Option<GuestPtr<[T]>>
     where
         T: GuestType,

@@ -1447,7 +1447,7 @@ dependencies = [
 [[package]]
 name = "flux-attrs"
 version = "0.1.0"
-source = "git+https://github.com/flux-rs/flux.git#4b5ee5cde9d228929bf1b11e6e14a0fce4f25c0a"
+source = "git+https://github.com/flux-rs/flux.git#0301038641e330c133a237d66bb95a6f214058c4"
 dependencies = [
  "flux-attrs-impl",
 ]
@@ -1455,7 +1455,7 @@ dependencies = [
 [[package]]
 name = "flux-attrs-impl"
 version = "0.1.0"
-source = "git+https://github.com/flux-rs/flux.git#4b5ee5cde9d228929bf1b11e6e14a0fce4f25c0a"
+source = "git+https://github.com/flux-rs/flux.git#0301038641e330c133a237d66bb95a6f214058c4"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1463,9 +1463,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "flux-core"
+version = "0.1.0"
+source = "git+https://github.com/flux-rs/flux.git#0301038641e330c133a237d66bb95a6f214058c4"
+dependencies = [
+ "flux-attrs",
+]
+
+[[package]]
 name = "flux-rs"
 version = "0.1.0"
-source = "git+https://github.com/flux-rs/flux.git#4b5ee5cde9d228929bf1b11e6e14a0fce4f25c0a"
+source = "git+https://github.com/flux-rs/flux.git#0301038641e330c133a237d66bb95a6f214058c4"
 dependencies = [
  "flux-attrs",
 ]
@@ -5392,6 +5400,7 @@ name = "wiggle"
 version = "51.0.0-dev"
 dependencies = [
  "bitflags 2.11.1",
+ "flux-core",
  "flux-rs",
  "proptest",
  "thiserror 2.0.17",
